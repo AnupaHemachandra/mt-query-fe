@@ -24,7 +24,7 @@ const Navigation = () => {
               MTQuery
             </Link>
           </div>
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
             <Link to="/tenant-request" className="mtq-nav-link">
               Request Access
             </Link>
@@ -69,82 +69,93 @@ function App() {
   return (
     <DarkModeProvider>
       <Router>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
           <Navigation />
 
-        <main>
-          <Routes>
-            <Route path="/" element={
-              <div className="max-w-6xl mx-auto mt-16 p-8">
-                <div className="text-center mb-16">
-                  <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-                    Welcome to MTQuery
-                  </h1>
-                  <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-                    The ultimate Multi-Tenant Query Platform for modern organizations
-                  </p>
+          <main className="flex-1">
+            <Routes>
+              <Route path="/" element={
+                <div className="max-w-6xl mx-auto mt-12 md:mt-16 px-4 md:px-8 pb-12">
+                  <div className="text-center mb-12 md:mb-16">
+                    <h1 className="mtq-heading-primary text-4xl md:text-5xl mb-4">
+                      Welcome to MTQuery
+                    </h1>
+                    <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                      The ultimate Multi-Tenant Query Platform for modern organizations
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <div className="mtq-card mtq-card-hover flex flex-col justify-between group">
+                      <div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">For Tenants</h2>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                          Request access to our query platform and manage your organization's users.
+                        </p>
+                      </div>
+                      <Link to="/tenant-request" className="mtq-button-primary w-full text-center">
+                        Request Access
+                      </Link>
+                    </div>
+                    <div className="mtq-card mtq-card-hover flex flex-col justify-between group">
+                      <div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">For Administrators</h2>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                          Review tenant requests and manage the query platform.
+                        </p>
+                      </div>
+                      <Link to="/admin" className="mtq-button-success w-full text-center">
+                        Admin Dashboard
+                      </Link>
+                    </div>
+                    <div className="mtq-card mtq-card-hover flex flex-col justify-between group">
+                      <div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 007 7H5a7 7 0 007-7z" />
+                          </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">For Users</h2>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                          Login to access your tenant's query resources and features.
+                        </p>
+                      </div>
+                      <Link to="/user-login" className="mtq-button-secondary w-full text-center">
+                        User Login
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="mtq-card mtq-card-hover flex flex-col justify-between group">
-                    <div>
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">For Tenants</h2>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                        Request access to our query platform and manage your organization's users.
-                      </p>
-                    </div>
-                    <Link to="/tenant-request" className="mtq-button-primary w-full text-center">
-                      Request Access
-                    </Link>
-                  </div>
-                  <div className="mtq-card mtq-card-hover flex flex-col justify-between group">
-                    <div>
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">For Administrators</h2>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                        Review tenant requests and manage the query platform.
-                      </p>
-                    </div>
-                    <Link to="/admin" className="mtq-button-success w-full text-center">
-                      Admin Dashboard
-                    </Link>
-                  </div>
-                  <div className="mtq-card mtq-card-hover flex flex-col justify-between group">
-                    <div>
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">For Users</h2>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                        Login to access your tenant's query resources and features.
-                      </p>
-                    </div>
-                    <Link to="/user-login" className="mtq-button-secondary w-full text-center">
-                      User Login
-                    </Link>
-                  </div>
-                </div>
+              } />
+              <Route path="/tenant-request" element={<TenantRequest />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/tenant-login" element={<TenantAdminLogin />} />
+              <Route path="/tenant-dashboard" element={<TenantAdminDashboard />} />
+              <Route path="/user-login" element={<UserLogin />} />
+              <Route path="/super-user-login" element={<SuperUserLogin />} />
+              <Route path="/documents" element={<DocumentsDashboard />} />
+            </Routes>
+          </main>
+
+          <footer className="mt-auto border-t border-gray-200/60 dark:border-gray-800/60 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm">
+            <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+              <span>© {new Date().getFullYear()} MTQuery. All rights reserved.</span>
+              <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                <a className="hover:text-blue-600 dark:hover:text-blue-400" href="#">Privacy</a>
+                <a className="hover:text-blue-600 dark:hover:text-blue-400" href="#">Terms</a>
+                <a className="hover:text-blue-600 dark:hover:text-blue-400" href="#">Contact</a>
               </div>
-            } />
-            <Route path="/tenant-request" element={<TenantRequest />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/tenant-login" element={<TenantAdminLogin />} />
-            <Route path="/tenant-dashboard" element={<TenantAdminDashboard />} />
-            <Route path="/user-login" element={<UserLogin />} />
-            <Route path="/super-user-login" element={<SuperUserLogin />} />
-            <Route path="/documents" element={<DocumentsDashboard />} />
-          </Routes>
-        </main>
+            </div>
+          </footer>
         </div>
       </Router>
     </DarkModeProvider>
