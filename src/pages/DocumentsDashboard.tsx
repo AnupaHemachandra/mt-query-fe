@@ -76,6 +76,26 @@ const DocumentsDashboard: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // NEW: track expanded subjects and expanded reference items
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<number>>(new Set());
+  const [expandedReferenceDocs, setExpandedReferenceDocs] = useState<Record<string, boolean>>({});
+
+  const toggleSubjectExpand = (id: number) => {
+    setExpandedSubjects(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleReferenceDoc = (key: string) => {
+    setExpandedReferenceDocs(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -150,6 +170,56 @@ const DocumentsDashboard: React.FC = () => {
     );
   };
 
+  // Helper: render assistant message content as structured UI (no **)
+  const renderAssistantContent = (content: string) => {
+    const lines = content.split(/\r?\n/);
+    const elements: React.ReactNode[] = [];
+    let listBuffer: string[] = [];
+
+    const flushList = () => {
+      if (listBuffer.length > 0) {
+        elements.push(
+          <ul className="list-disc pl-6 space-y-1 text-gray-800" key={`ul-${elements.length}`}>
+            {listBuffer.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        );
+        listBuffer = [];
+      }
+    };
+
+    lines.forEach((raw) => {
+      const line = raw.replace(/\*\*/g, '').trimEnd();
+      if (line.trim() === '') {
+        flushList();
+        return;
+      }
+      if (/^[-\u2022]/.test(line)) {
+        // bullet
+        const item = line.replace(/^[-\u2022]\s*/, '');
+        listBuffer.push(item);
+        return;
+      }
+      // heading like "Key Findings:" or any ending with :
+      if (/.*:\s*$/.test(line)) {
+        flushList();
+        elements.push(
+          <h4 className="text-sm font-semibold text-gray-900 mt-3" key={`h-${elements.length}`}>{line.replace(/:\s*$/, '')}</h4>
+        );
+        return;
+      }
+      // paragraph
+      flushList();
+      elements.push(
+        <p className="text-sm text-gray-700 leading-relaxed" key={`p-${elements.length}`}>{line}</p>
+      );
+    });
+
+    flushList();
+    return <div className="space-y-2">{elements}</div>;
+  };
+
   const handleRAGQuery = async () => {
     if (!ragQuery.trim() || !selectedSubject) return;
     
@@ -184,19 +254,7 @@ const DocumentsDashboard: React.FC = () => {
       const mockResponse: QueryMessage = {
         id: Date.now() + 1,
         type: "assistant",
-        content: `Based on your query "${ragQuery}" in ${subjects.find(s => s.id === selectedSubject)?.name || 'this subject'}, here's what I found:
-
-**Key Findings:**
-- Neural network architectures are fundamental to deep learning systems
-- React best practices include component optimization and state management
-- Statistical analysis provides insights into data patterns and trends
-
-**Relevant Documents:**
-- Deep Learning Fundamentals.pdf (95% match)
-- React Best Practices.docx (87% match)
-- Statistical Analysis.xlsx (78% match)
-
-Would you like me to elaborate on any of these topics or explore specific aspects further?`,
+        content: `Based on your query "${userMessage.content}" in ${subjects.find(s => s.id === selectedSubject)?.name || 'this subject'}, here's what I found:\n\nKey Findings:\n- Neural network architectures are fundamental to deep learning systems\n- React best practices include component optimization and state management\n- Statistical analysis provides insights into data patterns and trends\n\nRelevant Documents:\n- Deep Learning Fundamentals.pdf (95% match)\n- React Best Practices.docx (87% match)\n- Statistical Analysis.xlsx (78% match)\n\nWould you like me to elaborate on any of these topics or explore specific aspects further?`,
         timestamp: new Date().toISOString(),
         documents: ["Deep Learning Fundamentals.pdf", "React Best Practices.docx"],
         relevance: 0.92
@@ -321,13 +379,14 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                               <div className="text-xs text-gray-500 dark:text-gray-400">{subject.documentCount} documents</div>
                             </div>
                           </div>
-                          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 smooth-fade">
+                          <div className="flex items-center space-x-1 opacity-100 sm:opacity-0 group-hover:opacity-100 smooth-fade">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditSubject(subject);
                               }}
                               className="p-1 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                              title="Edit"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -339,14 +398,47 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                                 handleDeleteSubject(subject.id);
                               }}
                               className="p-1 text-gray-400 hover:text-red-600 transition-colors duration-200"
+                              title="Delete"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSubjectExpand(subject.id);
+                              }}
+                              className="p-1 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                              title="Expand"
+                            >
+                              <svg className={`w-3 h-3 transition-transform duration-200 ${expandedSubjects.has(subject.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
                       </button>
+                      {/* Expanded subject details */}
+                      {expandedSubjects.has(subject.id) && (
+                        <div className="ml-3 mr-3 mt-2 mb-3 p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 animate-fade-in-smooth">
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{subject.description}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-4 h-4 rounded bg-gradient-to-br ${subject.color}`}></span>
+                              <span className="text-xs text-gray-500">Theme color</span>
+                            </div>
+                            <Button
+                              onClick={() => setSelectedSubject(subject.id)}
+                              size="sm"
+                              variant="primary"
+                              className="!px-3 !py-1 text-xs"
+                            >
+                              View Documents
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -462,7 +554,7 @@ Would you like me to elaborate on any of these topics or explore specific aspect
 
             {/* Query Interface Panel */}
             <div className="mtq-card">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
                  <div>
                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">AI Query Interface</h2>
                    <p className="text-sm text-gray-600 dark:text-gray-400">Ask questions about your documents</p>
@@ -482,23 +574,28 @@ Would you like me to elaborate on any of these topics or explore specific aspect
               
               {/* Query Input */}
               <div className="mb-6">
-                 <div className="flex items-center space-x-2 mb-3">
-                   <span className="text-sm text-gray-600 dark:text-gray-400">Query from:</span>
-                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                     {selectedDocuments.length > 0 ? `${selectedDocuments.length} selected docs` : 'All documents'}
-                   </span>
+                 <div className="flex flex-wrap items-center gap-2 mb-3">
+                   {selectedSubject && (
+                     <span className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-md text-xs">
+                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                       {subjects.find(s => s.id === selectedSubject)?.name}
+                     </span>
+                   )}
+                   <span className="text-xs text-gray-500">{selectedDocuments.length > 0 ? `${selectedDocuments.length} selected docs` : 'All documents'}</span>
                  </div>
-                <div className={`flex space-x-3 ${queryAnimation ? 'animate-query-submit' : ''}`}>
+                <div className={`flex space-x-3 ${queryAnimation ? 'animate-query-submit' : ''}`}
+                >
                   <div className="flex-1 relative">
                     <textarea
                       value={ragQuery}
                       onChange={(e) => setRagQuery(e.target.value)}
-                      placeholder="Ask a question about your documents..."
-                      className={`w-full h-24 px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none smooth-transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${queryAnimation ? 'query-processing' : ''} ${isQuerying ? 'opacity-70' : ''}`}
+                      placeholder="Type your question clearly. For example: \"Summarize Q4 performance from Business reports\""
+                      className={`w-full h-28 md:h-24 px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none smooth-transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${queryAnimation ? 'query-processing' : ''} ${isQuerying ? 'opacity-70' : ''}`}
                       disabled={isQuerying}
                     />
+                    <div className="absolute -bottom-6 left-0 text-[10px] text-gray-500">{ragQuery.length} chars</div>
                     {isQuerying && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 rounded-lg">
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 rounded-xl">
                         <div className="thinking-indicator">
                           <div className="thinking-dot-stagger"></div>
                           <div className="thinking-dot-stagger"></div>
@@ -507,28 +604,39 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                       </div>
                     )}
                   </div>
-                  <Button 
-                    onClick={handleRAGQuery}
-                    disabled={isQuerying || !ragQuery.trim()}
-                    variant="primary"
-                    size="sm"
-                    className="h-24 flex items-center justify-center min-w-[80px]"
-                  >
-                    {isQuerying ? (
-                      <div className="thinking-indicator">
-                        <div className="thinking-dot-stagger"></div>
-                        <div className="thinking-dot-stagger"></div>
-                        <div className="thinking-dot-stagger"></div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span>Ask</span>
-                      </div>
-                    )}
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      onClick={handleRAGQuery}
+                      disabled={isQuerying || !ragQuery.trim()}
+                      variant="primary"
+                      size="sm"
+                      className="h-14 md:h-24 flex items-center justify-center min-w-[80px]"
+                    >
+                      {isQuerying ? (
+                        <div className="thinking-indicator">
+                          <div className="thinking-dot-stagger"></div>
+                          <div className="thinking-dot-stagger"></div>
+                          <div className="thinking-dot-stagger"></div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span>Ask</span>
+                        </div>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setRagQuery("")}
+                      variant="neutral"
+                      size="sm"
+                      className="h-10"
+                      disabled={isQuerying || ragQuery.length === 0}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -609,7 +717,7 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                   </div>
                   <div className={`bg-gradient-to-br from-gray-50 to-blue-50 border border-gray-200 rounded-lg p-6 smooth-transition shadow-sm ${answerAnimation ? 'animate-answer-reveal' : ''}`}>
                     <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-                      {conversations[selectedSubject][conversations[selectedSubject].length - 1].content}
+                      {renderAssistantContent(conversations[selectedSubject][conversations[selectedSubject].length - 1].content)}
                     </div>
                     {conversations[selectedSubject][conversations[selectedSubject].length - 1].documents && (
                       <div className="mt-3 pt-3 border-t border-gray-200">
@@ -631,6 +739,7 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                             {conversations[selectedSubject][conversations[selectedSubject].length - 1].documents?.map((docName, index) => {
                               const doc = documents.find(d => d.name === docName);
                               const subject = doc ? subjects.find(s => s.id === doc.subjectId) : null;
+                              const refKey = `${conversations[selectedSubject].length - 1}-${docName}`;
                               return (
                                 <div key={index} className="bg-white p-3 rounded-md border border-gray-200">
                                   <div className="flex items-start space-x-3">
@@ -638,7 +747,18 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                                       <span className="text-gray-600 font-medium text-xs">{doc?.type || 'DOC'}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <h4 className="text-sm font-medium text-gray-900 truncate">{docName}</h4>
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-medium text-gray-900 truncate">{docName}</h4>
+                                        <button
+                                          onClick={() => toggleReferenceDoc(refKey)}
+                                          className="text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200 flex items-center gap-1"
+                                        >
+                                          <span>{expandedReferenceDocs[refKey] ? 'Hide' : 'Expand'}</span>
+                                          <svg className={`w-3 h-3 transition-transform duration-200 ${expandedReferenceDocs[refKey] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                          </svg>
+                                        </button>
+                                      </div>
                                       {doc && (
                                         <div className="mt-1">
                                           <p className="text-xs text-gray-600">{doc.size} • {doc.uploadDate}</p>
@@ -652,6 +772,11 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                                               {doc.status}
                                             </span>
                                           </div>
+                                        </div>
+                                      )}
+                                      {expandedReferenceDocs[refKey] && (
+                                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded animate-fade-in-smooth">
+                                          <p className="text-xs text-gray-700 whitespace-pre-wrap">{doc?.content || 'No preview available.'}</p>
                                         </div>
                                       )}
                                     </div>
@@ -693,7 +818,9 @@ Would you like me to elaborate on any of these topics or explore specific aspect
                               ? 'bg-gray-900 text-white' 
                               : 'bg-white border border-gray-200'
                           }`}>
-                            <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                            <div className="text-sm whitespace-pre-wrap">
+                              {message.type === 'assistant' ? renderAssistantContent(message.content) : message.content}
+                            </div>
                             {message.documents && (
                               <div className="mt-2 pt-2 border-t border-gray-200/50">
                                 <button
